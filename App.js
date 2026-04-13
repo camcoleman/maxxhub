@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from './screens/HomeScreen';
 import RealmsScreen from './screens/RealmsScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import MaxxingGuideScreen from './screens/MaxxingGuideScreen';
 import { QUEST_POOL } from './data/quests';
 
 const Tab = createBottomTabNavigator();
@@ -14,11 +15,11 @@ const DARK_THEME = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: '#0B1020',
-    card: '#121A31',
-    text: '#E5E7EB',
-    border: '#1E293B',
-    primary: '#6D28D9',
+    background: '#03040A',
+    card: '#0A0F1F',
+    text: '#E6ECFF',
+    border: '#1B2540',
+    primary: '#00E5FF',
   },
 };
 
@@ -143,9 +144,25 @@ export default function App() {
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarStyle: { backgroundColor: '#121A31', borderTopColor: '#1E293B' },
-          tabBarActiveTintColor: '#A78BFA',
-          tabBarInactiveTintColor: '#94A3B8',
+          tabBarShowIcon: false,
+          tabBarStyle: {
+            backgroundColor: '#050913',
+            borderTopColor: '#1B2540',
+            borderTopWidth: 1,
+            height: 78,
+            paddingBottom: 12,
+            paddingTop: 10,
+          },
+          tabBarActiveTintColor: '#00E5FF',
+          tabBarInactiveTintColor: '#6E7FA8',
+          tabBarItemStyle: {
+            justifyContent: 'center',
+          },
+          tabBarLabelStyle: {
+            fontSize: 13,
+            fontWeight: '700',
+            letterSpacing: 0.4,
+          },
         }}
       >
         <Tab.Screen name="Home">
@@ -157,6 +174,20 @@ export default function App() {
         <Tab.Screen name="Profile">
           {() => <ProfileScreen user={user} maxxScore={maxxScore} />}
         </Tab.Screen>
+        <Tab.Screen
+          name="MaxxingGuide"
+          component={MaxxingGuideScreen}
+          options={({ route }) => ({
+            headerShown: true,
+            title: route?.params?.title || 'Maxxing Guide',
+            tabBarButton: () => null,
+            tabBarItemStyle: { width: 0, display: 'none' },
+            tabBarStyle: { display: 'none' },
+            headerStyle: { backgroundColor: '#050913' },
+            headerTintColor: '#E6ECFF',
+            headerTitleStyle: { fontWeight: '700' },
+          })}
+        />
       </Tab.Navigator>
     </NavigationContainer>
   );
