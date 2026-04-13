@@ -3,12 +3,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QuestCard from '../components/QuestCard';
-import { MAXXING_CATEGORIES } from '../data/maxxingGuides';
+import { REALM_SUMMARY } from '../data/maxxLibrary';
 import SpaceBackdrop from '../components/SpaceBackdrop';
 
 export default function HomeScreen({
   user,
-  maxxScore,
+  maxxRating,
   onCompleteQuest,
   onRefreshDailyQuests,
 }) {
@@ -25,38 +25,35 @@ export default function HomeScreen({
         <Text style={styles.heading}>MaxxHub</Text>
         <Text style={styles.subheading}>Futuristic protocol for elite self-upgrades</Text>
 
-      <View style={styles.scoreCard}>
-        <View style={styles.scoreItem}>
-          <Text style={styles.bigNumber}>{maxxScore}</Text>
-          <Text style={styles.label}>Maxx Score</Text>
+        <View style={styles.scoreCard}>
+          <View style={styles.scoreItem}>
+            <Text style={styles.bigNumber}>{maxxRating}</Text>
+            <Text style={styles.label}>Maxx Score</Text>
+          </View>
+          <View style={styles.scoreItem}>
+            <Text style={styles.bigNumber}>{user.level}</Text>
+            <Text style={styles.label}>Level</Text>
+          </View>
+          <View style={styles.scoreItem}>
+            <Text style={styles.bigNumber}>{user.streak}</Text>
+            <Text style={styles.label}>Streak</Text>
+          </View>
         </View>
-        <View style={styles.scoreItem}>
-          <Text style={styles.bigNumber}>{user.level}</Text>
-          <Text style={styles.label}>Level</Text>
-        </View>
-        <View style={styles.scoreItem}>
-          <Text style={styles.bigNumber}>{user.streak}</Text>
-          <Text style={styles.label}>Streak</Text>
-        </View>
-      </View>
 
-      <Text style={styles.sectionTitle}>Maxxing Categories</Text>
-      {MAXXING_CATEGORIES.map((category) => (
-        <Pressable
-          key={category.id}
-          style={styles.categoryCard}
-          onPress={() =>
-            navigation.navigate('MaxxingGuide', {
-              categoryId: category.id,
-              title: category.title,
-            })
-          }
-        >
-          <Text style={styles.categoryTitle}>{category.title}</Text>
-          <Text style={styles.categorySubtitle}>{category.subtitle}</Text>
-          <Text style={styles.categoryLink}>Open guidance</Text>
-        </Pressable>
-      ))}
+        <Text style={styles.sectionTitle}>Maxxing Categories</Text>
+        {REALM_SUMMARY.map((realm) => (
+          <Pressable
+            key={realm.id}
+            style={styles.categoryCard}
+            onPress={() => navigation.navigate('Explore', { initialRealmId: realm.id })}
+          >
+            <Text style={styles.categoryTitle}>{realm.title}</Text>
+            <Text style={styles.categorySubtitle}>{realm.subtitle}</Text>
+            <Text style={styles.categoryLink}>
+              Open {realm.subcategoryCount} Subsystems
+            </Text>
+          </Pressable>
+        ))}
 
         <Text style={styles.sectionTitle}>Daily Quests</Text>
         {user.dailyQuests.map((quest) => (
@@ -74,6 +71,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 24,
     paddingBottom: 34,
   },
   heading: {

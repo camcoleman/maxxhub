@@ -4,10 +4,12 @@ import React, { useMemo, useState } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from './screens/HomeScreen';
+import ExploreScreen from './screens/ExploreScreen';
 import RealmsScreen from './screens/RealmsScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import MaxxingGuideScreen from './screens/MaxxingGuideScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 import { QUEST_POOL } from './data/quests';
+import { SUBCATEGORY_INDEX } from './data/maxxLibrary';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,6 +27,8 @@ const DARK_THEME = {
 
 const getToday = () => new Date().toISOString().split('T')[0];
 
+const realmStatKeys = ['Looks', 'Body', 'Money', 'Energy', 'Social', 'Identity'];
+
 const pickDailyQuests = () => {
   const shuffled = [...QUEST_POOL].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, 3).map((quest) => ({
@@ -33,12 +37,28 @@ const pickDailyQuests = () => {
   }));
 };
 
+const createInitialSubcategoryProgress = () =>
+  Object.keys(SUBCATEGORY_INDEX).reduce((acc, subcategoryId) => {
+    acc[subcategoryId] = { level: 1, completionCount: 0, tier: 'Beginner' };
+    return acc;
+  }, {});
+
 const defaultStats = {
-  Attractiveness: 50,
-  Status: 50,
+  Looks: 50,
+  Body: 50,
+  Money: 50,
   Energy: 50,
   Social: 50,
   Identity: 50,
+};
+
+const defaultMetrics = {
+  heightFeet: '5',
+  heightInches: '10',
+  weightLbs: '',
+  age: '24',
+  gymStatus: 'beginner',
+  netWorthUsd: '',
 };
 
 export default function App() {
@@ -50,13 +70,18 @@ export default function App() {
     lastActiveDate: null,
     dailyQuestDate: getToday(),
     dailyQuests: pickDailyQuests(),
+    subcategoryProgress: createInitialSubcategoryProgress(),
+    metrics: defaultMetrics,
+    onboardingComplete: false,
   });
 
   const maxxScore = useMemo(() => {
-    const values = Object.values(user.stats);
+    const values = realmStatKeys.map((realm) => user.stats[realm] || 0);
     const total = values.reduce((sum, value) => sum + value, 0);
     return Math.round(total / values.length);
   }, [user.stats]);
+
+  const maxxRating = useMemo(() => (maxxScore / 10).toFixed(1), [maxxScore]);
 
   const handleCompleteQuest = (questId) => {
     const today = getToday();
@@ -110,6 +135,76 @@ export default function App() {
     });
   };
 
+  const handleCompleteSubcategorySession = (subcategoryId) => {
+    const subcategory = SUBCATEGORY_INDEX[subcategoryId];
+    if (!subcategory) {
+      return;
+    }
+
+    const today = getToday();
+
+    setUser((prevUser) => {
+      const previousProgress = prevUser.subcategoryProgress[subcategoryId] || {
+        level: 1,
+        completionCount: 0,
+        tier: 'Beginner',
+      };
+      const completionCount = previousProgress.completionCount + 1;
+      const level = Math.min(10, Math.floor(completionCount / 2) + 1);
+      let tier = 'Beginner';
+      if (level >= 7) {
+        tier = 'Advanced';
+      } else if (level >= 4) {
+        tier = 'Intermediate';
+      }
+
+      const xp = prevUser.xp + 15;
+      const profileLevel = Math.floor(xp / 100) + 1;
+      const statKey = subcategory.realmTitle;
+      const updatedStats = {
+        ...prevUser.stats,
+        [statKey]: Math.min((prevUser.stats[statKey] || 0) + 1, 100),
+      };
+
+      return {
+        ...prevUser,
+        stats: updatedStats,
+        xp,
+        level: profileLevel,
+        lastActiveDate: today,
+        subcategoryProgress: {
+          ...prevUser.subcategoryProgress,
+          [subcategoryId]: {
+            level,
+            completionCount,
+            tier,
+          },
+        },
+      };
+    });
+  };
+
+  const handleUpdateMetrics = (incomingMetrics) => {
+    setUser((prevUser) => ({
+      ...prevUser,
+      metrics: {
+        ...prevUser.metrics,
+        ...incomingMetrics,
+      },
+    }));
+  };
+
+  const handleCompleteOnboarding = (metrics) => {
+    setUser((prevUser) => ({
+      ...prevUser,
+      metrics: {
+        ...prevUser.metrics,
+        ...metrics,
+      },
+      onboardingComplete: true,
+    }));
+  };
+
   const refreshDailyQuestsIfNeeded = () => {
     const today = getToday();
     setUser((prevUser) => {
@@ -134,9 +229,21 @@ export default function App() {
   const sharedProps = {
     user,
     maxxScore,
+    maxxRating,
     onCompleteQuest: handleCompleteQuest,
+    onCompleteSubcategorySession: handleCompleteSubcategorySession,
     onRefreshDailyQuests: refreshDailyQuestsIfNeeded,
+    onUpdateMetrics: handleUpdateMetrics,
   };
+
+  if (!user.onboardingComplete) {
+    return (
+      <NavigationContainer theme={DARK_THEME}>
+        <StatusBar style="light" />
+        <OnboardingScreen onComplete={handleCompleteOnboarding} />
+      </NavigationContainer>
+    );
+  }
 
   return (
     <NavigationContainer theme={DARK_THEME}>
@@ -168,26 +275,15 @@ export default function App() {
         <Tab.Screen name="Home">
           {() => <HomeScreen {...sharedProps} />}
         </Tab.Screen>
+        <Tab.Screen name="Explore">
+          {(props) => <ExploreScreen {...props} {...sharedProps} />}
+        </Tab.Screen>
         <Tab.Screen name="Realms">
           {() => <RealmsScreen user={user} />}
         </Tab.Screen>
         <Tab.Screen name="Profile">
-          {() => <ProfileScreen user={user} maxxScore={maxxScore} />}
+          {() => <ProfileScreen user={user} maxxRating={maxxRating} />}
         </Tab.Screen>
-        <Tab.Screen
-          name="MaxxingGuide"
-          component={MaxxingGuideScreen}
-          options={({ route }) => ({
-            headerShown: true,
-            title: route?.params?.title || 'Maxxing Guide',
-            tabBarButton: () => null,
-            tabBarItemStyle: { width: 0, display: 'none' },
-            tabBarStyle: { display: 'none' },
-            headerStyle: { backgroundColor: '#050913' },
-            headerTintColor: '#E6ECFF',
-            headerTitleStyle: { fontWeight: '700' },
-          })}
-        />
       </Tab.Navigator>
     </NavigationContainer>
   );
