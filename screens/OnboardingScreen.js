@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import SpaceBackdrop from '../components/SpaceBackdrop';
 
@@ -11,6 +11,7 @@ const gymOptions = [
 ];
 
 export default function OnboardingScreen({ onComplete }) {
+  const insets = useSafeAreaInsets();
   const [heightFeet, setHeightFeet] = useState('5');
   const [heightInches, setHeightInches] = useState('10');
   const [weightLbs, setWeightLbs] = useState('');
@@ -41,7 +42,12 @@ export default function OnboardingScreen({ onComplete }) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <SpaceBackdrop />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: Math.max(insets.top, 16) + 16 },
+        ]}
+      >
         <Text style={styles.heading}>Welcome to MaxxHub</Text>
         <Text style={styles.subheading}>Build your baseline to unlock personalized drawbacks.</Text>
 
@@ -148,7 +154,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingTop: 24,
     paddingBottom: 32,
   },
   heading: {

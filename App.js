@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from './screens/HomeScreen';
@@ -238,53 +239,57 @@ export default function App() {
 
   if (!user.onboardingComplete) {
     return (
-      <NavigationContainer theme={DARK_THEME}>
-        <StatusBar style="light" />
-        <OnboardingScreen onComplete={handleCompleteOnboarding} />
-      </NavigationContainer>
+      <SafeAreaProvider>
+        <NavigationContainer theme={DARK_THEME}>
+          <StatusBar style="light" />
+          <OnboardingScreen onComplete={handleCompleteOnboarding} />
+        </NavigationContainer>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <NavigationContainer theme={DARK_THEME}>
-      <StatusBar style="light" />
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarShowIcon: false,
-          tabBarStyle: {
-            backgroundColor: '#050913',
-            borderTopColor: '#1B2540',
-            borderTopWidth: 1,
-            height: 78,
-            paddingBottom: 12,
-            paddingTop: 10,
-          },
-          tabBarActiveTintColor: '#00E5FF',
-          tabBarInactiveTintColor: '#6E7FA8',
-          tabBarItemStyle: {
-            justifyContent: 'center',
-          },
-          tabBarLabelStyle: {
-            fontSize: 13,
-            fontWeight: '700',
-            letterSpacing: 0.4,
-          },
-        }}
-      >
-        <Tab.Screen name="Home">
-          {() => <HomeScreen {...sharedProps} />}
-        </Tab.Screen>
-        <Tab.Screen name="Explore">
-          {(props) => <ExploreScreen {...props} {...sharedProps} />}
-        </Tab.Screen>
-        <Tab.Screen name="Realms">
-          {() => <RealmsScreen user={user} />}
-        </Tab.Screen>
-        <Tab.Screen name="Profile">
-          {() => <ProfileScreen user={user} maxxRating={maxxRating} />}
-        </Tab.Screen>
-      </Tab.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer theme={DARK_THEME}>
+        <StatusBar style="light" />
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarShowIcon: false,
+            tabBarStyle: {
+              backgroundColor: '#050913',
+              borderTopColor: '#1B2540',
+              borderTopWidth: 1,
+              height: 78,
+              paddingBottom: 12,
+              paddingTop: 10,
+            },
+            tabBarActiveTintColor: '#00E5FF',
+            tabBarInactiveTintColor: '#6E7FA8',
+            tabBarItemStyle: {
+              justifyContent: 'center',
+            },
+            tabBarLabelStyle: {
+              fontSize: 13,
+              fontWeight: '700',
+              letterSpacing: 0.4,
+            },
+          }}
+        >
+          <Tab.Screen name="Home">
+            {() => <HomeScreen {...sharedProps} />}
+          </Tab.Screen>
+          <Tab.Screen name="Explore">
+            {(props) => <ExploreScreen {...props} {...sharedProps} />}
+          </Tab.Screen>
+          <Tab.Screen name="Realms">
+            {() => <RealmsScreen user={user} />}
+          </Tab.Screen>
+          <Tab.Screen name="Profile">
+            {() => <ProfileScreen user={user} maxxRating={maxxRating} />}
+          </Tab.Screen>
+        </Tab.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
