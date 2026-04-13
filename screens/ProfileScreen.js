@@ -1,7 +1,9 @@
-import React from 'react';
-import { Alert, Pressable, Share, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, Pressable, Share, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SpaceBackdrop from '../components/SpaceBackdrop';
+import { calculateMaxxScore } from '../utils/scoring';
+import { calculatePSLScore } from '../utils/pslScoring';
 
 function getRecommendations(metrics) {
   const age = Number(metrics.age);
@@ -68,12 +70,83 @@ function getRecommendations(metrics) {
   return recommendations.slice(0, 4);
 }
 
-export default function ProfileScreen({ user, maxxRating }) {
+export default function ProfileScreen({ user, maxxRating, onUpdateTopPSL }) {
   const sortedStats = Object.entries(user.stats).sort((a, b) => b[1] - a[1]);
   const topThree = sortedStats.slice(0, 3).map(([name]) => name);
   const weakest = sortedStats[sortedStats.length - 1]?.[0] || 'N/A';
   const metrics = user.metrics || {};
   const recommendations = getRecommendations(metrics);
+  const heightInInches = (Number(metrics.heightFeet) || 0) * 12 + (Number(metrics.heightInches) || 0);
+
+  // Replace these demo fallbacks with persisted profile fields when backend user profiles are added.
+  const scoringInputs = {
+    looks: user.stats?.Looks ?? 62,
+    body: user.stats?.Body ?? 58,
+    status: user.stats?.Money ?? 55,
+    energy: user.stats?.Energy ?? 60,
+    social: user.stats?.Social ?? 57,
+    heightInInches: heightInInches || 69,
+    gender: metrics.gender === 'female' ? 'female' : 'male',
+  };
+
+  const scoreBreakdown = calculateMaxxScore(scoringInputs);
+  const pslDefaults = useMemo(
+    () => ({
+      canthalTilt: '5',
+      eyeSpacing: '5',
+      browArea: '5',
+      underEye: '5',
+      eyeOpenness: '5',
+      jawline: '5',
+      chinProjection: '5',
+      cheekbones: '5',
+      profileBalance: '5',
+      skinClarity: '5',
+      acneTexture: '5',
+      grooming: '5',
+      haircutFit: '5',
+      hairDensity: '5',
+      hairline: '5',
+      hairstyleFit: '5',
+      symmetry: '5',
+      facialHarmony: '5',
+      physique: '5',
+      bodyFatScore: '5',
+      posture: '5',
+      style: '5',
+      heightInInches: String(heightInInches || 68),
+      gender: metrics.gender === 'female' ? 'female' : 'male',
+    }),
+    [heightInInches, metrics.gender]
+  );
+  const [pslForm, setPslForm] = useState(pslDefaults);
+  const [pslResult, setPslResult] = useState(null);
+  const [pslError, setPslError] = useState('');
+
+  const pslFields = [
+    ['canthalTilt', 'Canthal Tilt'],
+    ['eyeSpacing', 'Eye Spacing'],
+    ['browArea', 'Brow Area'],
+    ['underEye', 'Under Eye'],
+    ['eyeOpenness', 'Eye Openness'],
+    ['jawline', 'Jawline'],
+    ['chinProjection', 'Chin Projection'],
+    ['cheekbones', 'Cheekbones'],
+    ['profileBalance', 'Profile Balance'],
+    ['skinClarity', 'Skin Clarity'],
+    ['acneTexture', 'Acne Texture'],
+    ['grooming', 'Grooming'],
+    ['haircutFit', 'Haircut Fit'],
+    ['hairDensity', 'Hair Density'],
+    ['hairline', 'Hairline'],
+    ['hairstyleFit', 'Hairstyle Fit'],
+    ['symmetry', 'Symmetry'],
+    ['facialHarmony', 'Facial Harmony'],
+    ['physique', 'Physique'],
+    ['bodyFatScore', 'Body Fat Score'],
+    ['posture', 'Posture'],
+    ['style', 'Style'],
+  ];
 
   const handleShare = async () => {
     const message = [
@@ -89,6 +162,24 @@ export default function ProfileScreen({ user, maxxRating }) {
       await Share.share({ message });
     } catch (error) {
       Alert.alert('Share failed', 'Could not open share sheet right now.');
+    }
+  };
+
+  const handleSubmitPSL = () => {
+    try {
+      // Replace this temporary form state with persisted profile inputs later.
+      const result = calculatePSLScore(pslForm);
+      if (!result || typeof result.rawPSL !== 'number') {
+        setPslResult(null);
+        setPslError('Unable to compute PSL score right now. Please check your inputs and try again.');
+        return;
+      }
+      setPslError('');
+      setPslResult(result);
+      onUpdateTopPSL?.(result.rawPSL);
+    } catch (error) {
+      setPslResult(null);
+      setPslError('Unable to compute PSL score right now. Please check your inputs and try again.');
     }
   };
 
@@ -108,6 +199,19 @@ export default function ProfileScreen({ user, maxxRating }) {
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.subheading}>Central Scoring Engine</Text>
+          <Text style={styles.item}>Overall Grade: {scoreBreakdown.grade}</Text>
+          <Text style={styles.item}>Raw Maxx Score: {scoreBreakdown.rawScore}/100</Text>
+          <Text style={styles.item}>
+            Controllable Score: {scoreBreakdown.controllableScore}/100
+          </Text>
+          <Text style={styles.item}>Height Modifier: {scoreBreakdown.heightModifier}</Text>
+          <Text style={styles.item}>Strongest Area: {scoreBreakdown.strongestArea}</Text>
+          <Text style={styles.item}>Weakest Area: {scoreBreakdown.weakestArea}</Text>
+          <Text style={styles.recommendation}>{scoreBreakdown.personalizedMessage}</Text>
+        </View>
+
+        <View style={styles.card}>
           <Text style={styles.subheading}>Stats</Text>
           {Object.entries(user.stats).map(([name, value]) => (
             <Text key={name} style={styles.item}>
@@ -123,6 +227,7 @@ export default function ProfileScreen({ user, maxxRating }) {
           </Text>
           <Text style={styles.item}>Weight: {metrics.weightLbs || '-'} lbs</Text>
           <Text style={styles.item}>Age: {metrics.age || '-'}</Text>
+          <Text style={styles.item}>Gender: {metrics.gender || '-'}</Text>
           <Text style={styles.item}>Gym Status: {metrics.gymStatus || '-'}</Text>
           <Text style={styles.item}>Net Worth: ${metrics.netWorthUsd || '-'}</Text>
         </View>
@@ -134,6 +239,93 @@ export default function ProfileScreen({ user, maxxRating }) {
               • {entry}
             </Text>
           ))}
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.subheading}>PSL Input Lab (0-10)</Text>
+          <Text style={styles.item}>
+            Enter face/body/style scores, then submit to render a live PSL-style rating.
+          </Text>
+
+          <View style={styles.row}>
+            <View style={styles.inputCol}>
+              <Text style={styles.inputLabel}>Height (inches)</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={pslForm.heightInInches}
+                onChangeText={(value) =>
+                  setPslForm((prev) => ({
+                    ...prev,
+                    heightInInches: value,
+                  }))
+                }
+              />
+            </View>
+            <View style={styles.inputCol}>
+              <Text style={styles.inputLabel}>Gender</Text>
+              <View style={styles.genderRow}>
+                {['male', 'female'].map((gender) => (
+                  <Pressable
+                    key={gender}
+                    onPress={() => setPslForm((prev) => ({ ...prev, gender }))}
+                    style={[
+                      styles.genderButton,
+                      pslForm.gender === gender && styles.genderButtonActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.genderButtonText,
+                        pslForm.gender === gender && styles.genderButtonTextActive,
+                      ]}
+                    >
+                      {gender}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.formGrid}>
+            {pslFields.map(([key, label]) => (
+              <View key={key} style={styles.inputBlock}>
+                <Text style={styles.inputLabel}>{label}</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={pslForm[key]}
+                  onChangeText={(value) =>
+                    setPslForm((prev) => ({
+                      ...prev,
+                      [key]: value,
+                    }))
+                  }
+                />
+              </View>
+            ))}
+          </View>
+
+          <Pressable style={styles.submitButton} onPress={handleSubmitPSL}>
+            <Text style={styles.submitText}>Calculate PSL Score</Text>
+          </Pressable>
+
+          {pslError ? <Text style={styles.errorText}>{pslError}</Text> : null}
+
+          {pslResult ? (
+            <View style={styles.resultCard}>
+              <Text style={styles.item}>Grade: {pslResult.grade}</Text>
+              <Text style={styles.item}>Raw PSL Score: {pslResult.rawPSL}/100</Text>
+              <Text style={styles.item}>
+                Controllable Score: {pslResult.controllablePSL}/100
+              </Text>
+              <Text style={styles.item}>Height Modifier: {pslResult.heightModifier}</Text>
+              <Text style={styles.item}>Strongest Area: {pslResult.strongestArea}</Text>
+              <Text style={styles.item}>Weakest Area: {pslResult.weakestArea}</Text>
+              <Text style={styles.recommendation}>{pslResult.personalizedMessage}</Text>
+            </View>
+          ) : null}
         </View>
 
         <Pressable style={styles.shareButton} onPress={handleShare}>
@@ -190,6 +382,94 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 7,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  inputCol: {
+    flex: 1,
+  },
+  formGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  inputBlock: {
+    width: '48.5%',
+    marginBottom: 10,
+  },
+  inputLabel: {
+    color: '#8FA2CC',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: '#050913',
+    borderWidth: 1,
+    borderColor: '#1F335F',
+    borderRadius: 10,
+    color: '#E6ECFF',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  genderRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  genderButton: {
+    flex: 1,
+    borderRadius: 999,
+    borderColor: '#1F335F',
+    borderWidth: 1,
+    paddingVertical: 9,
+    alignItems: 'center',
+  },
+  genderButtonActive: {
+    borderColor: '#00E5FF',
+    backgroundColor: '#082030',
+  },
+  genderButtonText: {
+    color: '#8FA2CC',
+    fontWeight: '700',
+    textTransform: 'capitalize',
+    fontSize: 12,
+  },
+  genderButtonTextActive: {
+    color: '#00E5FF',
+  },
+  submitButton: {
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 999,
+    backgroundColor: '#00B8D9',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  submitText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 12,
+  },
+  errorText: {
+    color: '#FCA5A5',
+    fontSize: 13,
+    marginTop: 4,
+  },
+  resultCard: {
+    marginTop: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1F335F',
+    backgroundColor: '#060B18',
+    padding: 12,
   },
   shareButton: {
     marginTop: 4,

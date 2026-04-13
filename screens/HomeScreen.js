@@ -9,6 +9,8 @@ import SpaceBackdrop from '../components/SpaceBackdrop';
 export default function HomeScreen({
   user,
   maxxRating,
+  topPSL,
+  gigachadRank,
   onCompleteQuest,
   onRefreshDailyQuests,
 }) {
@@ -30,6 +32,17 @@ export default function HomeScreen({
             <Text style={styles.bigNumber}>{maxxRating}</Text>
             <Text style={styles.label}>Maxx Score</Text>
           </View>
+          <View style={styles.scoreItem}>
+            <Text style={styles.bigNumber}>{topPSL}</Text>
+            <Text style={styles.label}>Top PSL</Text>
+          </View>
+          <View style={styles.scoreItem}>
+            <Text style={styles.bigNumberSmall}>{gigachadRank}</Text>
+            <Text style={styles.label}>Gigachad Rank</Text>
+          </View>
+        </View>
+
+        <View style={styles.scoreCardSecondary}>
           <View style={styles.scoreItem}>
             <Text style={styles.bigNumber}>{user.level}</Text>
             <Text style={styles.label}>Level</Text>
@@ -108,6 +121,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 4,
   },
+  bigNumberSmall: {
+    color: '#00E5FF',
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
   label: {
     color: '#7A8CB4',
     fontSize: 12,
@@ -136,6 +156,16 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
     elevation: 3,
+  },
+  scoreCardSecondary: {
+    backgroundColor: '#0A0F1F',
+    borderWidth: 1,
+    borderColor: '#1B2540',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   categoryTitle: {
     color: '#ECF2FF',

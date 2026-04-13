@@ -45,12 +45,12 @@ const createInitialSubcategoryProgress = () =>
   }, {});
 
 const defaultStats = {
-  Looks: 50,
-  Body: 50,
-  Money: 50,
-  Energy: 50,
-  Social: 50,
-  Identity: 50,
+  Looks: 42,
+  Body: 46,
+  Money: 38,
+  Energy: 44,
+  Social: 40,
+  Identity: 43,
 };
 
 const defaultMetrics = {
@@ -58,8 +58,79 @@ const defaultMetrics = {
   heightInches: '10',
   weightLbs: '',
   age: '24',
+  gender: 'male',
   gymStatus: 'beginner',
+  sleepHours: '7',
+  groomingConsistency: '6',
+  socialConfidence: '5',
+  incomeMomentum: '5',
   netWorthUsd: '',
+};
+
+const clampStat = (value) => Math.max(0, Math.min(100, value));
+
+const getGigachadRank = (maxxScore, topPSL) => {
+  const composite = Math.round(maxxScore * 0.6 + topPSL * 0.4);
+  if (composite >= 90) {
+    return 'Gigachad Prime';
+  }
+  if (composite >= 80) {
+    return 'Apex Ascendant';
+  }
+  if (composite >= 70) {
+    return 'Sigma Builder';
+  }
+  if (composite >= 60) {
+    return 'Rising Contender';
+  }
+  if (composite >= 50) {
+    return 'Foundation Mode';
+  }
+  return 'Novice Arc';
+};
+
+const createStatsFromMetrics = (metrics) => {
+  const heightInches = (Number(metrics.heightFeet) || 5) * 12 + (Number(metrics.heightInches) || 8);
+  const weightLbs = Number(metrics.weightLbs) || 165;
+  const age = Number(metrics.age) || 24;
+  const netWorth = Number(metrics.netWorthUsd) || 0;
+  const gymStatus = metrics.gymStatus || 'beginner';
+  const sleepHours = Number(metrics.sleepHours) || 7;
+  const groomingConsistency = Number(metrics.groomingConsistency) || 6;
+  const socialConfidence = Number(metrics.socialConfidence) || 5;
+  const incomeMomentum = Number(metrics.incomeMomentum) || 5;
+
+  const bmi = (weightLbs * 703) / Math.max(heightInches, 1) ** 2;
+  const bodyBase =
+    gymStatus === 'advanced' ? 64 : gymStatus === 'intermediate' ? 56 : 48;
+  const body = clampStat(
+    Math.round(bodyBase + (bmi > 20 && bmi < 27 ? 4 : -2) + (sleepHours >= 7 ? 2 : -2))
+  );
+  const looks = clampStat(
+    Math.round(
+      38 +
+        (heightInches >= 70 ? 4 : 0) +
+        (gymStatus !== 'beginner' ? 3 : 0) +
+        groomingConsistency * 2
+    )
+  );
+  const money = clampStat(
+    Math.round(30 + Math.min(25, Math.log10(Math.max(netWorth, 1)) * 5) + incomeMomentum * 2)
+  );
+  const energy = clampStat(
+    Math.round(40 + (age < 30 ? 4 : age > 40 ? -3 : 1) + sleepHours * 3)
+  );
+  const social = clampStat(Math.round(36 + socialConfidence * 4 + (gymStatus === 'advanced' ? 3 : 0)));
+  const identity = clampStat(Math.round(40 + incomeMomentum * 2 + (netWorth > 10000 ? 4 : 1)));
+
+  return {
+    Looks: looks,
+    Body: body,
+    Money: money,
+    Energy: energy,
+    Social: social,
+    Identity: identity,
+  };
 };
 
 export default function App() {
@@ -73,6 +144,7 @@ export default function App() {
     dailyQuests: pickDailyQuests(),
     subcategoryProgress: createInitialSubcategoryProgress(),
     metrics: defaultMetrics,
+    topPSL: 0,
     onboardingComplete: false,
   });
 
@@ -83,6 +155,10 @@ export default function App() {
   }, [user.stats]);
 
   const maxxRating = useMemo(() => (maxxScore / 10).toFixed(1), [maxxScore]);
+  const gigachadRank = useMemo(
+    () => getGigachadRank(maxxScore, user.topPSL || 0),
+    [maxxScore, user.topPSL]
+  );
 
   const handleCompleteQuest = (questId) => {
     const today = getToday();
@@ -195,9 +271,25 @@ export default function App() {
     }));
   };
 
+  const handleUpdateTopPSL = (rawPSL) => {
+    const parsed = Number(rawPSL);
+    if (!Number.isFinite(parsed)) {
+      return;
+    }
+
+    setUser((prevUser) => ({
+      ...prevUser,
+      topPSL: Math.max(prevUser.topPSL || 0, Math.round(parsed)),
+    }));
+  };
+
   const handleCompleteOnboarding = (metrics) => {
     setUser((prevUser) => ({
       ...prevUser,
+      stats: createStatsFromMetrics({
+        ...prevUser.metrics,
+        ...metrics,
+      }),
       metrics: {
         ...prevUser.metrics,
         ...metrics,
@@ -231,10 +323,13 @@ export default function App() {
     user,
     maxxScore,
     maxxRating,
+    topPSL: user.topPSL || 0,
+    gigachadRank,
     onCompleteQuest: handleCompleteQuest,
     onCompleteSubcategorySession: handleCompleteSubcategorySession,
     onRefreshDailyQuests: refreshDailyQuestsIfNeeded,
     onUpdateMetrics: handleUpdateMetrics,
+    onUpdateTopPSL: handleUpdateTopPSL,
   };
 
   if (!user.onboardingComplete) {
@@ -286,7 +381,13 @@ export default function App() {
             {() => <RealmsScreen user={user} />}
           </Tab.Screen>
           <Tab.Screen name="Profile">
-            {() => <ProfileScreen user={user} maxxRating={maxxRating} />}
+            {() => (
+              <ProfileScreen
+                user={user}
+                maxxRating={maxxRating}
+                onUpdateTopPSL={handleUpdateTopPSL}
+              />
+            )}
           </Tab.Screen>
         </Tab.Navigator>
       </NavigationContainer>
