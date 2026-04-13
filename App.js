@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from './screens/HomeScreen';
+import LeaderboardScreen from './screens/LeaderboardScreen';
 import ExploreScreen from './screens/ExploreScreen';
 import RealmsScreen from './screens/RealmsScreen';
 import ProfileScreen from './screens/ProfileScreen';
@@ -69,26 +70,6 @@ const defaultMetrics = {
 
 const clampStat = (value) => Math.max(0, Math.min(100, value));
 
-const getGigachadRank = (maxxScore, topPSL) => {
-  const composite = Math.round(maxxScore * 0.6 + topPSL * 0.4);
-  if (composite >= 90) {
-    return 'Gigachad Prime';
-  }
-  if (composite >= 80) {
-    return 'Apex Ascendant';
-  }
-  if (composite >= 70) {
-    return 'Sigma Builder';
-  }
-  if (composite >= 60) {
-    return 'Rising Contender';
-  }
-  if (composite >= 50) {
-    return 'Foundation Mode';
-  }
-  return 'Novice Arc';
-};
-
 const createStatsFromMetrics = (metrics) => {
   const heightInches = (Number(metrics.heightFeet) || 5) * 12 + (Number(metrics.heightInches) || 8);
   const weightLbs = Number(metrics.weightLbs) || 165;
@@ -144,7 +125,6 @@ export default function App() {
     dailyQuests: pickDailyQuests(),
     subcategoryProgress: createInitialSubcategoryProgress(),
     metrics: defaultMetrics,
-    topPSL: 0,
     onboardingComplete: false,
   });
 
@@ -154,11 +134,7 @@ export default function App() {
     return Math.round(total / values.length);
   }, [user.stats]);
 
-  const maxxRating = useMemo(() => (maxxScore / 10).toFixed(1), [maxxScore]);
-  const gigachadRank = useMemo(
-    () => getGigachadRank(maxxScore, user.topPSL || 0),
-    [maxxScore, user.topPSL]
-  );
+  const maxxScale = useMemo(() => (maxxScore / 10).toFixed(1), [maxxScore]);
 
   const handleCompleteQuest = (questId) => {
     const today = getToday();
@@ -271,18 +247,6 @@ export default function App() {
     }));
   };
 
-  const handleUpdateTopPSL = (rawPSL) => {
-    const parsed = Number(rawPSL);
-    if (!Number.isFinite(parsed)) {
-      return;
-    }
-
-    setUser((prevUser) => ({
-      ...prevUser,
-      topPSL: Math.max(prevUser.topPSL || 0, Math.round(parsed)),
-    }));
-  };
-
   const handleCompleteOnboarding = (metrics) => {
     setUser((prevUser) => ({
       ...prevUser,
@@ -322,14 +286,11 @@ export default function App() {
   const sharedProps = {
     user,
     maxxScore,
-    maxxRating,
-    topPSL: user.topPSL || 0,
-    gigachadRank,
+    maxxScale,
     onCompleteQuest: handleCompleteQuest,
     onCompleteSubcategorySession: handleCompleteSubcategorySession,
     onRefreshDailyQuests: refreshDailyQuestsIfNeeded,
     onUpdateMetrics: handleUpdateMetrics,
-    onUpdateTopPSL: handleUpdateTopPSL,
   };
 
   if (!user.onboardingComplete) {
@@ -374,6 +335,9 @@ export default function App() {
           <Tab.Screen name="Home">
             {() => <HomeScreen {...sharedProps} />}
           </Tab.Screen>
+          <Tab.Screen name="Leaderboard">
+            {() => <LeaderboardScreen user={user} maxxScale={maxxScale} />}
+          </Tab.Screen>
           <Tab.Screen name="Explore">
             {(props) => <ExploreScreen {...props} {...sharedProps} />}
           </Tab.Screen>
@@ -384,8 +348,7 @@ export default function App() {
             {() => (
               <ProfileScreen
                 user={user}
-                maxxRating={maxxRating}
-                onUpdateTopPSL={handleUpdateTopPSL}
+                maxxScale={maxxScale}
               />
             )}
           </Tab.Screen>

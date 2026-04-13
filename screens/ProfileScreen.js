@@ -5,6 +5,44 @@ import SpaceBackdrop from '../components/SpaceBackdrop';
 import { calculateMaxxScore } from '../utils/scoring';
 import { calculatePSLScore } from '../utils/pslScoring';
 
+const PSL_LADDER = [
+  { grade: 'F', min: 0 },
+  { grade: 'D', min: 50 },
+  { grade: 'C', min: 60 },
+  { grade: 'B', min: 70 },
+  { grade: 'A', min: 80 },
+  { grade: 'S', min: 90 },
+];
+
+const NEXT_TIER_TARGET = {
+  F: { grade: 'D', minScore: 50 },
+  D: { grade: 'C', minScore: 60 },
+  C: { grade: 'B', minScore: 70 },
+  B: { grade: 'A', minScore: 80 },
+  A: { grade: 'S', minScore: 90 },
+  S: { grade: 'S', minScore: 95 },
+};
+
+function getStrictPSLRecommendations(pslResult) {
+  const { grade, rawPSL, weakestArea, strongestArea } = pslResult;
+  const target = NEXT_TIER_TARGET[grade] || NEXT_TIER_TARGET.F;
+  const pointsNeeded = Math.max(0, target.minScore - rawPSL);
+
+  if (grade === 'S') {
+    return [
+      'You are already in S-tier. Maintain consistency and tighten weak spots to hold 95+.',
+      `Keep your strongest area (${strongestArea}) stable while improving ${weakestArea}.`,
+    ];
+  }
+
+  return [
+    `Next PSL ladder: ${target.grade} tier. You need +${pointsNeeded} points to reach ${target.minScore}.`,
+    `Strict focus: ${weakestArea} sessions 5x/week for the next 21 days.`,
+    'Non-negotiables: daily grooming, posture checks 3 times/day, and one style upgrade per week.',
+    `Protect momentum in ${strongestArea} so improvements stack instead of shifting weaknesses.`,
+  ];
+}
+
 function getRecommendations(metrics) {
   const age = Number(metrics.age);
   const heightFeet = Number(metrics.heightFeet);
@@ -70,7 +108,7 @@ function getRecommendations(metrics) {
   return recommendations.slice(0, 4);
 }
 
-export default function ProfileScreen({ user, maxxRating, onUpdateTopPSL }) {
+export default function ProfileScreen({ user, maxxScale }) {
   const sortedStats = Object.entries(user.stats).sort((a, b) => b[1] - a[1]);
   const topThree = sortedStats.slice(0, 3).map(([name]) => name);
   const weakest = sortedStats[sortedStats.length - 1]?.[0] || 'N/A';
@@ -151,7 +189,7 @@ export default function ProfileScreen({ user, maxxRating, onUpdateTopPSL }) {
   const handleShare = async () => {
     const message = [
       'MAXX BREAKDOWN CARD',
-      `Maxx Score: ${maxxRating}`,
+      `Maxx Scale: ${maxxScale}/10`,
       `Strongest: ${topThree.join(', ')}`,
       `Weakest: ${weakest}`,
       `Level ${user.level} | ${user.streak} day streak`,
@@ -176,12 +214,13 @@ export default function ProfileScreen({ user, maxxRating, onUpdateTopPSL }) {
       }
       setPslError('');
       setPslResult(result);
-      onUpdateTopPSL?.(result.rawPSL);
     } catch (error) {
       setPslResult(null);
       setPslError('Unable to compute PSL score right now. Please check your inputs and try again.');
     }
   };
+  const pslProgressPercent = pslResult ? Math.max(0, Math.min(100, pslResult.rawPSL)) : 0;
+  const strictPSLRecommendations = pslResult ? getStrictPSLRecommendations(pslResult) : [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -193,7 +232,7 @@ export default function ProfileScreen({ user, maxxRating, onUpdateTopPSL }) {
           <Text style={styles.item}>Level: {user.level}</Text>
           <Text style={styles.item}>XP: {user.xp}</Text>
           <Text style={styles.item}>Streak: {user.streak}</Text>
-          <Text style={styles.item}>Maxx Score: {maxxRating}</Text>
+          <Text style={styles.item}>Maxx Scale: {maxxScale}/10</Text>
           <Text style={styles.item}>Strongest: {topThree.join(', ')}</Text>
           <Text style={styles.item}>Weakest: {weakest}</Text>
         </View>
@@ -201,11 +240,7 @@ export default function ProfileScreen({ user, maxxRating, onUpdateTopPSL }) {
         <View style={styles.card}>
           <Text style={styles.subheading}>Central Scoring Engine</Text>
           <Text style={styles.item}>Overall Grade: {scoreBreakdown.grade}</Text>
-          <Text style={styles.item}>Raw Maxx Score: {scoreBreakdown.rawScore}/100</Text>
-          <Text style={styles.item}>
-            Controllable Score: {scoreBreakdown.controllableScore}/100
-          </Text>
-          <Text style={styles.item}>Height Modifier: {scoreBreakdown.heightModifier}</Text>
+          <Text style={styles.item}>Maxx Scale: {(scoreBreakdown.rawScore / 10).toFixed(1)}/10</Text>
           <Text style={styles.item}>Strongest Area: {scoreBreakdown.strongestArea}</Text>
           <Text style={styles.item}>Weakest Area: {scoreBreakdown.weakestArea}</Text>
           <Text style={styles.recommendation}>{scoreBreakdown.personalizedMessage}</Text>
@@ -315,15 +350,30 @@ export default function ProfileScreen({ user, maxxRating, onUpdateTopPSL }) {
 
           {pslResult ? (
             <View style={styles.resultCard}>
+              <Text style={styles.ladderHeading}>PSL Ladder Scale</Text>
+              <View style={styles.scaleTrack}>
+                <View style={[styles.scaleFill, { width: `${pslProgressPercent}%` }]} />
+                <View style={[styles.scaleMarker, { left: `${pslProgressPercent}%` }]} />
+              </View>
+              <View style={styles.scaleLabels}>
+                {PSL_LADDER.map((tier) => (
+                  <Text key={tier.grade} style={styles.scaleLabel}>
+                    {tier.grade}
+                  </Text>
+                ))}
+              </View>
               <Text style={styles.item}>Grade: {pslResult.grade}</Text>
-              <Text style={styles.item}>Raw PSL Score: {pslResult.rawPSL}/100</Text>
-              <Text style={styles.item}>
-                Controllable Score: {pslResult.controllablePSL}/100
-              </Text>
-              <Text style={styles.item}>Height Modifier: {pslResult.heightModifier}</Text>
+              <Text style={styles.item}>Maxx Scale: {(pslResult.rawPSL / 10).toFixed(1)}/10</Text>
               <Text style={styles.item}>Strongest Area: {pslResult.strongestArea}</Text>
               <Text style={styles.item}>Weakest Area: {pslResult.weakestArea}</Text>
               <Text style={styles.recommendation}>{pslResult.personalizedMessage}</Text>
+
+              <Text style={styles.ladderHeading}>Strict Next Ladder Plan</Text>
+              {strictPSLRecommendations.map((planLine) => (
+                <Text key={planLine} style={styles.strictLine}>
+                  • {planLine}
+                </Text>
+              ))}
             </View>
           ) : null}
         </View>
@@ -470,6 +520,54 @@ const styles = StyleSheet.create({
     borderColor: '#1F335F',
     backgroundColor: '#060B18',
     padding: 12,
+  },
+  ladderHeading: {
+    color: '#D6DEFA',
+    fontSize: 14,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  scaleTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#1F335F',
+    overflow: 'visible',
+    marginBottom: 6,
+  },
+  scaleFill: {
+    height: '100%',
+    backgroundColor: '#00E5FF',
+    borderRadius: 999,
+  },
+  scaleMarker: {
+    position: 'absolute',
+    top: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#00E5FF',
+    marginLeft: -9,
+  },
+  scaleLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  scaleLabel: {
+    color: '#8FA2CC',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  strictLine: {
+    color: '#C8D7F7',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 5,
   },
   shareButton: {
     marginTop: 4,

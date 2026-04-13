@@ -97,7 +97,7 @@ export function generateScoringMessage(inputs) {
     heightExplanation = 'Your height gives you a small boost in your overall score.';
   }
 
-  return `Grade ${grade}. Your current Maxx Score is ${rawScore}/100. Your strongest area is ${strongestArea}, and your biggest opportunity is ${weakestArea}. ${heightExplanation}`;
+  return `Grade ${grade}. Your current Maxx Scale is ${(rawScore / 10).toFixed(1)}/10. Your strongest area is ${strongestArea}, and your biggest opportunity is ${weakestArea}. ${heightExplanation}`;
 }
 
 export function calculateMaxxScore(inputs) {
@@ -134,7 +134,7 @@ export function calculateMaxxScore(inputs) {
     heightExplanation = 'Your height gives you a small boost in your overall score.';
   }
 
-  const personalizedMessage = `Grade ${grade}. Your current Maxx Score is ${rawScore}/100. Your strongest area is ${strongestArea}, and your biggest opportunity is ${weakestArea}. ${heightExplanation}`;
+  const personalizedMessage = `Grade ${grade}. Your current Maxx Scale is ${(rawScore / 10).toFixed(1)}/10. Your strongest area is ${strongestArea}, and your biggest opportunity is ${weakestArea}. ${heightExplanation}`;
 
   return {
     rawScore,

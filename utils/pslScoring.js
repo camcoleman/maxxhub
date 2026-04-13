@@ -78,7 +78,7 @@ export function generatePSLMessage(result) {
       'Height gives a small boost, but your score is still driven mostly by face, grooming, and presentation.';
   }
 
-  return `Grade ${grade}. Your current PSL-style score is ${rawPSL}/100. Strongest area: ${strongestArea}. Weakest area: ${weakestArea}. Your fastest improvement path is ${weakestArea} plus grooming, posture, and style consistency. ${heightLine}`;
+  return `Grade ${grade}. Your current Maxx Scale is ${(rawPSL / 10).toFixed(1)}/10. Strongest area: ${strongestArea}. Weakest area: ${weakestArea}. Your fastest improvement path is ${weakestArea} plus grooming, posture, and style consistency. ${heightLine}`;
 }
 
 export function calculatePSLScore(inputs) {

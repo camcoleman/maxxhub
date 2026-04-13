@@ -8,13 +8,12 @@ import SpaceBackdrop from '../components/SpaceBackdrop';
 
 export default function HomeScreen({
   user,
-  maxxRating,
-  topPSL,
-  gigachadRank,
+  maxxScale,
   onCompleteQuest,
   onRefreshDailyQuests,
 }) {
   const navigation = useNavigation();
+  const pslProgressPercent = Math.max(0, Math.min(100, (Number(maxxScale) || 0) * 10));
 
   useEffect(() => {
     onRefreshDailyQuests();
@@ -29,16 +28,8 @@ export default function HomeScreen({
 
         <View style={styles.scoreCard}>
           <View style={styles.scoreItem}>
-            <Text style={styles.bigNumber}>{maxxRating}</Text>
-            <Text style={styles.label}>Maxx Score</Text>
-          </View>
-          <View style={styles.scoreItem}>
-            <Text style={styles.bigNumber}>{topPSL}</Text>
-            <Text style={styles.label}>Top PSL</Text>
-          </View>
-          <View style={styles.scoreItem}>
-            <Text style={styles.bigNumberSmall}>{gigachadRank}</Text>
-            <Text style={styles.label}>Gigachad Rank</Text>
+            <Text style={styles.bigNumber}>{maxxScale}</Text>
+            <Text style={styles.label}>Maxx Scale</Text>
           </View>
         </View>
 
@@ -50,6 +41,21 @@ export default function HomeScreen({
           <View style={styles.scoreItem}>
             <Text style={styles.bigNumber}>{user.streak}</Text>
             <Text style={styles.label}>Streak</Text>
+          </View>
+        </View>
+
+        <View style={styles.scoreCardSecondary}>
+          <Text style={styles.smallSectionTitle}>PSL Ladder</Text>
+          <View style={styles.scaleTrack}>
+            <View style={[styles.scaleFill, { width: `${pslProgressPercent}%` }]} />
+            <View style={[styles.scaleMarker, { left: `${pslProgressPercent}%` }]} />
+          </View>
+          <View style={styles.scaleLabels}>
+            {['F', 'D', 'C', 'B', 'A', 'S'].map((tier) => (
+              <Text key={tier} style={styles.scaleLabel}>
+                {tier}
+              </Text>
+            ))}
           </View>
         </View>
 
@@ -123,7 +129,7 @@ const styles = StyleSheet.create({
   },
   bigNumberSmall: {
     color: '#00E5FF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
     textAlign: 'center',
     paddingHorizontal: 4,
@@ -184,5 +190,45 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+  },
+  smallSectionTitle: {
+    color: '#D6DEFA',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  scaleTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#1F335F',
+    overflow: 'visible',
+  },
+  scaleFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#00E5FF',
+  },
+  scaleMarker: {
+    position: 'absolute',
+    top: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#00E5FF',
+    marginLeft: -9,
+  },
+  scaleLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  scaleLabel: {
+    color: '#8FA2CC',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
